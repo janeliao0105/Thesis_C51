@@ -29,13 +29,16 @@ class FuturesTradingEnvrionment(gym.Env):
     # Example when using discrete actions:
     self.featue_array = featue_array
     self.action_space = spaces.Discrete(2)
-    self.observation_space = spaces.Box(low=0,high=50000,shape=(2025,),dtype=np.float32)
+    self.observation_space = spaces.Box(low=0,high=50000,shape=(2030,),dtype=np.float32)
     self.current_step = 1
     self.bull=[]
     self.bear=[]
     self.done = False
     self.total_reward = 0
     self.reward = 0
+    self.bull_hold_share = 0.
+    self.bear_hold_share = 0.
+    self.total_hold_share = 0.
 
     
   def seed(self,seed=None):
@@ -44,23 +47,19 @@ class FuturesTradingEnvrionment(gym.Env):
     
   def step(self, action):
     # Execute one time step within the environment
-    current_price = self.featue_array[self.current_step,self.current_step%404,3]
-    if action == 0:
-        self.bear.append(current_price)
-    elif action == 1:
-        self.bull.append(current_price)
-    
+    self.take_action()
     if self.current_step == len(self.featue_array)-2:
         self.done = True
         
     self.current_step += 1
+    
     if self.current_step % 404 == 0:
-        self.reward = sum(current_price - self.bull) + sum(self.bear - current_price )
-        
+        self.reward = self.bull_hold_share + self.bear_hold_share
         self.bear = []
         self.bull = []
-    else: self.reward = 0
-    # reward = sum(current_price - self.bull) + sum(self.bear - current_price )
+    else: 
+        self.reward = 0
+
     
     self.total_reward += self.reward
     
@@ -69,29 +68,33 @@ class FuturesTradingEnvrionment(gym.Env):
     return obs, self.reward, self.done, {}  
       
   def _next_observation(self):
-
-    obs = self.featue_array[self.current_step].flatten()
+    frame = self.featue_array[self.current_step]
+    obs = frame.append(np.array[len(self.bull),len(self.bear),self.bull_hold_share,self.bear_hold_share,self.total_hold_share])
+    obs = obs.flatten()
     return obs
 
   
   
-   # def _take_action(self,action):
-   #     current_price = self.featue_array[self.current_step,self.current_step%404,3]
-   #     action_type = self.action_space.sample()
-   #     if action_type == 0:
-   #         self.bear.append(current_price)
-          
-   #     else:
-   #         self.bull.append(current_price)
+  def _take_action(self,action):
+      current_price = self.featue_array[self.current_step,self.current_step%404,3]
+      if action == 0:
+          self.bear.append(current_price)
+      else:
+          self.bull.append(current_price)
       
-     
+      self.bull_hold_share = sum(current_price-self.bull)
+      self.bear_hold_share = sum(self.bear-current_price)
+      self.total_hold_share = self.bull_hold_share + self.bear_hold_share
     
   def reset(self):
     # Reset the state of the environment to an initial state
     self.current_step = 1
     self.bull = []
     self.bear = []
-    self.total_reward = 0
+    self.total_reward = 0.
+    self.bull_hold_share = 0.
+    self.bear_hold_share = 0.
+    self.total_hold_share = 0.
     return self._next_observation()
 
 
