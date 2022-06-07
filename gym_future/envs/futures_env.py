@@ -70,6 +70,8 @@ class FuturesTradingEnvrionment(gym.Env):
   def _next_observation(self):
     frame = self.featue_array[self.current_step]
     obs = frame.append(np.array[len(self.bull),len(self.bear),self.bull_hold_share,self.bear_hold_share,self.total_hold_share])
+    norm = np.linalg.norm(obs)
+    obs = obs / norm
     obs = obs.flatten()
     return obs
 
